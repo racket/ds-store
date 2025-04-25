@@ -1,6 +1,7 @@
 #lang scribble/manual
 @(require (for-label ds-store
                      ds-store/alias
+                     ds-store/cross-alias
                      racket/base
                      racket/contract/base))
 
@@ -79,7 +80,7 @@ Represent a window location for a @racket['fwi0] entry. The
 @section[#:tag "aliases"]{Finder Aliases}
 
 A @racket['pict] entry in a @filepath{.DS_Store} file references a
-file through a Finder alias.
+file through a Finder alias. See also @racketmodname[ds-store/cross-alias].
 
 @defmodule[ds-store/alias]
 
@@ -88,11 +89,80 @@ file through a Finder alias.
          (or/c bytes? #f)]{
 
 Constructs a byte string to represent a Finder alias but using the
-@filepath{CoreFoundation} library on Mac OS X.}
+@filepath{CoreFoundation} library on Mac OS.
+
+See also @racket[path->synthesized-alias-bytes].}
+
+@; ----------------------------------------
+
+@section[#:tag "cross-aliases"]{Cross-Built Finder Aliases}
+
+@defmodule[ds-store/cross-alias]
+
+@history[#:added "1.1"]
+
+@defproc[(path->synthesized-alias-bytes [#:volume-name volume-name string?]
+                                        [#:file-name file-name string?]
+                                        [#:file-inode file-inode exact-integer?]
+                                        [#:parent-name parent-name string?]
+                                        [#:parent-inode parent-inode exact-integer?]
+                                        [#:file-absolute-name file-absolute-name string?]
+                                        [#:file-absolute-path-within-volume file-absolute-path-within-volume string?]
+                                        [#:volume-maybe-absolute-path volume-maybe-absolute-path string?])
+         bytes?]{
+
+Like @racket[path->alias-bytes], but creates alias bytes without using
+Mac OS libraries, which requires specifying details of the filesystem
+for the alias:
+
+@itemlist[
+
+ @item{@racket[volume-name]: The name of the volume.}
+
+ @item{@racket[file-name]: The name of a file referenced by the alias,
+ not including its path.}
+
+ @item{@racket[file-inode]: The inode the referenced file (in the same
+ sense as the @racket['inode] result of
+ @racket[file-or-directory-stat]).}
+
+ @item{@racket[parent-name]: The name of the directory containing the
+ referenced file, not including the directory's path. If the
+ referenced file is in the volume's root directory,
+ @racket[parent-name] will be @racket[volume-name].}
+
+ @item{@racket[parent-inode]: The inode of the file's enclosing
+ directory (in the same sense as the @racket['inode] result of
+ @racket[file-or-directory-stat]).}
+
+ @item{@racket[file-absolute-name]: The full path to the referenced
+ file, but using Mac OS Classic path syntax, so path elements are
+ separated by @litchar{:}s. This path starts with @racket[volume-name]
+ and ends with @racket[file-name].}
+
+ @item{@racket[file-absolute-path-within-volume]: The full path to the
+ referenced file using Unix path conventions. If the referenced file
+ is in the volume's root directory, this path is @racket[file-name]
+ prefixed with @litchar{/}.}
+
+ @item{@racket[volume-maybe-absolute-path]: A prediction of how the
+ volume will be mounted, normally @racket[volume-name] prefixed with
+ @litchar{/Volumes/}.}
+
+]
+
+Alias synthesis is based on a reverse-engineered description of the
+alias format @cite["Alias"].
+
+}
 
 @; ----------------------------------------
 
 @bibliography[(bib-entry #:key "DS_Store"
                          #:title "DS_Store Format"
                          #:author "Wim Lewis and Mark Mentovai"
-                         #:url "http://search.cpan.org/~wiml/Mac-Finder-DSStore/DSStoreFormat.pod")]
+                         #:url "http://search.cpan.org/~wiml/Mac-Finder-DSStore/DSStoreFormat.pod")
+              (bib-entry #:key "Alias"
+                         #:title "Alias (Mac OS)"
+                         #:author "Wikipedia"
+                         #:url "https://en.wikipedia.org/wiki/Alias_(Mac_OS)")]
